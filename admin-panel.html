@@ -1,0 +1,140 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Yönetici Paneli | BritishTurks</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script type="module" src="firebase.js"></script>
+</head>
+<body class="bg-gray-50 text-black font-sans">
+  <div class="max-w-6xl mx-auto p-6">
+    <header class="mb-8 flex justify-between items-center">
+      <div>
+        <h1 class="text-3xl font-bold">🔧 Yönetici Paneli</h1>
+        <p class="text-gray-600">İçerik yönetim sistemine hoş geldiniz.</p>
+      </div>
+      <button id="logoutBtn" class="text-sm bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Çıkış Yap</button>
+    </header>
+
+    <main class="grid md:grid-cols-2 gap-6" id="mainContent"></main>
+  </div>
+
+  <script type="module">
+    import {
+      auth, db, onAuthStateChanged, signOut,
+      collection, addDoc, getDocs, deleteDoc, doc, updateDoc
+    } from './firebase.js';
+
+    const logoutBtn = document.getElementById("logoutBtn");
+    logoutBtn.onclick = async () => {
+      await signOut(auth);
+      window.location.href = "admin-login.html";
+    };
+
+    onAuthStateChanged(auth, user => {
+      if (!user) {
+        window.location.href = "admin-login.html";
+      } else {
+        loadAllPanels();
+      }
+    });
+
+    function createPanel(title, formId, fields, collectionName, listId) {
+      const main = document.getElementById("mainContent");
+      let formFields = fields.map(f => {
+        if (f.type === 'textarea') {
+          return `<textarea id="${f.id}" placeholder="${f.placeholder}" class="w-full border rounded p-2"></textarea>`;
+        } else {
+          return `<input type="${f.type}" id="${f.id}" placeholder="${f.placeholder}" class="w-full border rounded p-2" />`;
+        }
+      }).join('');
+
+      main.innerHTML += `
+        <section class="bg-white p-6 rounded-xl shadow">
+          <h2 class="text-xl font-semibold mb-4">${title}</h2>
+          <form id="${formId}" class="space-y-4">${formFields}
+            <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Ekle</button>
+          </form>
+          <div class="mt-4 space-y-2" id="${listId}"></div>
+        </section>`;
+
+      document.getElementById(formId).onsubmit = async (e) => {
+        e.preventDefault();
+        const data = {};
+        fields.forEach(f => {
+          data[f.id.replace('Input', '')] = document.getElementById(f.id).value;
+        });
+        await addDoc(collection(db, collectionName), data);
+        e.target.reset();
+        loadItems(collectionName, listId);
+      };
+
+      loadItems(collectionName, listId);
+    }
+
+    async function loadItems(colName, targetId) {
+      const list = document.getElementById(targetId);
+      list.innerHTML = "";
+      const snapshot = await getDocs(collection(db, colName));
+      snapshot.forEach(docSnap => {
+        const d = docSnap.data();
+        const id = docSnap.id;
+        const item = document.createElement("div");
+        item.className = "p-4 bg-gray-100 rounded space-y-1";
+        item.innerHTML = Object.values(d).map(v => `<p>${v}</p>`).join('') +
+        `<div class="text-right space-x-2 mt-2">
+          <button onclick="editItem('${colName}', '${id}', '${targetId}')" class="text-blue-600 text-sm hover:underline">Düzenle</button>
+          <button onclick="deleteItem('${colName}', '${id}', '${targetId}')" class="text-red-600 text-sm hover:underline">Sil</button>
+        </div>`;
+        list.appendChild(item);
+      });
+    }
+
+    window.deleteItem = async (col, id, targetId) => {
+      await deleteDoc(doc(db, col, id));
+      loadItems(col, targetId);
+    };
+
+    window.editItem = async (col, id, targetId) => {
+      const snap = await getDocs(collection(db, col));
+      const docData = snap.docs.find(d => d.id === id);
+      if (!docData) return;
+      const data = docData.data();
+      const newData = {};
+      for (let key in data) {
+        const val = prompt(`${key} değeri`, data[key]);
+        if (val !== null) newData[key] = val;
+      }
+      await updateDoc(doc(db, col, id), newData);
+      loadItems(col, targetId);
+    };
+
+    function loadAllPanels() {
+      createPanel("📢 Yeni Duyuru", "duyuruForm", [
+        { id: "titleInput", placeholder: "Başlık", type: "text" },
+        { id: "textInput", placeholder: "Açıklama", type: "textarea" }
+      ], "duyurular", "duyuruList");
+
+      createPanel("🎟 Yeni Etkinlik", "etkinlikForm", [
+        { id: "nameInput", placeholder: "Etkinlik Adı", type: "text" },
+        { id: "dateInput", placeholder: "Tarih (2025-05-01)", type: "text" },
+        { id: "locationInput", placeholder: "Konum", type: "text" }
+      ], "etkinlikler", "etkinlikList");
+
+      createPanel("💼 Yeni Kariyer İlanı", "kariyerForm", [
+        { id: "positionInput", placeholder: "Pozisyon", type: "text" },
+        { id: "typeInput", placeholder: "Tür (full-time / part-time / remote)", type: "text" },
+        { id: "descriptionInput", placeholder: "Detaylar", type: "textarea" }
+      ], "kariyer", "kariyerList");
+
+      createPanel("🏠 Yeni Emlak İlanı", "emlakForm", [
+        { id: "titleInput", placeholder: "Başlık", type: "text" },
+        { id: "roomsInput", placeholder: "Oda Sayısı (örn: 2+1)", type: "text" },
+        { id: "priceInput", placeholder: "Fiyat (£)", type: "number" }
+      ], "emlak", "emlakList");
+    }
+  </script>
+</body>
+</html>

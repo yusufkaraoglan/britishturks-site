@@ -1,0 +1,37 @@
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Emlak İlanları | BritishTurks</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script type="module" src="firebase.js"></script>
+</head>
+<body class="bg-gray-50 text-black font-sans">
+  <div class="max-w-3xl mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-6">🏠 Tüm Emlak İlanları</h1>
+    <div id="propertyList" class="space-y-4">
+      <p>Yükleniyor...</p>
+    </div>
+    <a href="index.html" class="block mt-10 text-center text-blue-600 hover:underline">⬅ Ana Sayfaya Dön</a>
+  </div>
+  <script type="module">
+    import { db, collection, getDocs } from './firebase.js';
+    const list = document.getElementById("propertyList");
+    list.innerHTML = "";
+    const snapshot = await getDocs(collection(db, "emlak"));
+    if (snapshot.empty) {
+      list.innerHTML = '<p>Henüz ilan bulunamadı.</p>';
+    } else {
+      snapshot.forEach(docSnap => {
+        const d = docSnap.data();
+        const item = document.createElement("div");
+        item.className = "bg-white p-5 rounded-xl shadow";
+        item.innerHTML = `<p class='font-semibold'>${d.title}</p><p class='text-sm text-gray-600'>${d.rooms} – £${d.price}</p>`;
+        list.appendChild(item);
+      });
+    }
+  </script>
+</body>
+</html>
