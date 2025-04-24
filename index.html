@@ -1,1 +1,92 @@
-<!DOCTYPE html><html><head><meta charset='utf-8'><title>BritishTurks Ana Sayfa</title></head><body><h1>BritishTurks Ana Sayfa</h1><p>Bu sayfa daha sonra güncellenecektir.</p></body></html>
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BritishTurks | Topluluğun Dijital Merkezi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script type="module" src="firebase.js"></script>
+</head>
+<body class="bg-gray-50 font-sans text-black">
+  <div class="flex min-h-screen">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-white border-r border-gray-200 p-6 hidden md:flex flex-col justify-between">
+      <div>
+        <h1 class="text-2xl font-extrabold text-red-600 mb-8">BritishTurks</h1>
+        <nav class="space-y-4 text-sm">
+          <a href="#duyurular" class="flex items-center gap-2 text-gray-700 hover:text-red-600"><span>📢</span> Duyurular</a>
+          <a href="#etkinlikler" class="flex items-center gap-2 text-gray-700 hover:text-red-600"><span>🎟</span> Etkinlikler</a>
+          <a href="#kariyer" class="flex items-center gap-2 text-gray-700 hover:text-red-600"><span>💼</span> Kariyer</a>
+          <a href="#emlak" class="flex items-center gap-2 text-gray-700 hover:text-red-600"><span>🏠</span> Emlak</a>
+        </nav>
+      </div>
+      <a href="admin-login.html" class="text-xs text-gray-400 hover:text-red-600">Yönetici Girişi</a>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-6 md:p-12 space-y-16">
+      <!-- Duyurular -->
+      <section id="duyurular">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-2xl font-semibold">📢 Son Duyurular</h2>
+          <a href="duyurular.html" class="text-sm text-blue-600 hover:underline">Tümünü Gör</a>
+        </div>
+        <div id="duyuruList" class="grid sm:grid-cols-2 lg:grid-cols-2 gap-6"></div>
+      </section>
+
+      <!-- Etkinlikler -->
+      <section id="etkinlikler">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-2xl font-semibold">🎟 Yaklaşan Etkinlikler</h2>
+          <a href="etkinlikler.html" class="text-sm text-blue-600 hover:underline">Tümünü Gör</a>
+        </div>
+        <div id="etkinlikList" class="grid sm:grid-cols-2 lg:grid-cols-2 gap-6"></div>
+      </section>
+
+      <!-- Kariyer -->
+      <section id="kariyer">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-2xl font-semibold">💼 Kariyer İlanları</h2>
+          <a href="kariyer.html" class="text-sm text-blue-600 hover:underline">Tümünü Gör</a>
+        </div>
+        <div id="kariyerList" class="grid sm:grid-cols-2 lg:grid-cols-2 gap-6"></div>
+      </section>
+
+      <!-- Emlak -->
+      <section id="emlak">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-2xl font-semibold">🏠 Son Emlak İlanları</h2>
+          <a href="emlak.html" class="text-sm text-blue-600 hover:underline">Tümünü Gör</a>
+        </div>
+        <div id="emlakList" class="grid sm:grid-cols-2 lg:grid-cols-2 gap-6"></div>
+      </section>
+    </main>
+  </div>
+
+  <script type="module">
+    import { db, collection, getDocs, query, limit } from './firebase.js';
+
+    async function renderItems(col, containerId, formatter) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = "";
+      const snapshot = await getDocs(query(collection(db, col), limit(4)));
+      if (snapshot.empty) {
+        container.innerHTML = '<p>İçerik bulunamadı.</p>';
+      } else {
+        snapshot.forEach(docSnap => {
+          const d = docSnap.data();
+          const card = document.createElement("div");
+          card.className = "bg-white p-6 rounded-2xl shadow hover:shadow-md transition-all";
+          card.innerHTML = formatter(d);
+          container.appendChild(card);
+        });
+      }
+    }
+
+    renderItems("duyurular", "duyuruList", d => `<p class='font-semibold text-lg mb-2'>${d.title}</p><p class='text-sm text-gray-600'>${d.text}</p>`);
+    renderItems("etkinlikler", "etkinlikList", d => `<p class='font-semibold text-lg mb-2'>${d.name}</p><p class='text-sm text-gray-600'>${d.date} - ${d.location}</p>`);
+    renderItems("kariyer", "kariyerList", d => `<p class='font-semibold text-lg mb-2'>${d.position}</p><p class='text-sm text-gray-600'>${d.type}</p><p class='text-sm text-gray-500'>${d.description}</p>`);
+    renderItems("emlak", "emlakList", d => `<p class='font-semibold text-lg mb-2'>${d.title}</p><p class='text-sm text-gray-600'>${d.rooms} • £${d.price}</p>`);
+  </script>
+</body>
+</html>
